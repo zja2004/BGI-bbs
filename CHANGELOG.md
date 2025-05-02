@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0-beta.3](https://github.com/flarum/flarum/compare/v2.0.0-beta.2...v2.0.0-beta.3)
+
+No changes.
+
+## [2.0.0-beta.2](https://github.com/flarum/flarum/compare/v2.0.0-beta.1...v2.0.0-beta.2)
+
+No changes.
+
 ## [2.0.0-beta.1](https://github.com/flarum/flarum/compare/v1.8.0...v2.0.0-beta.1)
 
 ### Added
