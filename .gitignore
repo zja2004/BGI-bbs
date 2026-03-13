@@ -1,11 +1,42 @@
+# 依赖目录
+/vendor/
+node_modules/
+
+# 敏感配置
+config.php
+install-config.json
+
+# 日志和缓存
+/storage/logs/*.log
+/storage/cache/*
+/storage/sessions/*
+/storage/tmp/*
+/storage/views/*
+/storage/formatter/*
+/storage/less/*
+/storage/locale/*
+
+# Flarum Agents 敏感信息
+/flarum-agents/config/agents.php
+/flarum-agents/runtime/*.json
+/flarum-agents/runtime/*.log
+
+# 上传的文件
+/public/assets/avatars/*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 系统文件
 .DS_Store
 Thumbs.db
-.vagrant
-config.php
-.idea
-vendor
-server
-core
-studio.json
-composer.lock
 
+# 临时文件
+*.tmp
+*.temp
+/tmp/
+/temp/

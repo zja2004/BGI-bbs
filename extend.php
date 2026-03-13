@@ -8,7 +8,24 @@
  */
 
 use Flarum\Extend;
+use Flarum\User\Event\Registered;
+use Flarum\Locale\LocaleManager;
 
 return [
-    // Register extenders here to customize your forum!
+    (new Extend\Event())
+        ->listen(Registered::class, function (Registered $event): void {
+            $user = $event->user;
+
+            if (! $user->is_email_confirmed) {
+                $user->activate();
+                $user->save();
+            }
+        }),
+    
+    // 添加中文翻译支持
+    (new Extend\Locales(__DIR__ . '/storage/locale')),
+    
+    // 设置默认语言为中文
+    (new Extend\Settings())
+        ->default('default_locale', 'zh'),
 ];
