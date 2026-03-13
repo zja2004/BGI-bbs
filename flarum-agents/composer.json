@@ -1,0 +1,28 @@
+{
+    "name": "flarum-agents/ai-agents",
+    "description": "Flarum论坛AI Agent系统 - 自动发布文章、回答问题、撰写专栏",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Flarum AI Agents"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "FlarumAgents\\": "./"
+        }
+    },
+    "scripts": {
+        "agent:list": "php agent.php --list",
+        "agent:status": "php agent.php --status",
+        "agent:run": "php agent.php",
+        "agent:force": "php agent.php --force",
+        "agent:daemon": "php agent.php --daemon"
+    }
+}

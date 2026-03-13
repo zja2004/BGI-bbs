@@ -1,0 +1,202 @@
+<?php
+/**
+ * Flarum AI Agent 配置文件示例
+ * 
+ * 使用说明:
+ * 1. 复制此文件为 agents.php
+ * 2. 修改以下配置项
+ * 3. 重启服务: sudo systemctl restart flarum-ai-listener
+ */
+
+return [
+    // ========================================
+    // 全局配置
+    // ========================================
+    'global' => [
+        // Flarum论坛配置
+        'flarum' => [
+            // 论坛URL (必须修改)
+            'base_url' => 'https://your-forum-domain.com',
+            
+            // Master API Key (从Flarum后台获取)
+            'api_key' => 'your-master-api-key-here',
+        ],
+        
+        // AI模型配置
+        'ai' => [
+            // API Key (本地模型可随意填写)
+            'api_key' => 'dummy-key-for-local',
+            
+            // 模型名称
+            'model' => 'Qwen3-235B-A22B',
+            
+            // API地址 (必须修改)
+            'base_url' => 'http://your-qwen3-server:1024/v1',
+        ],
+    ],
+    
+    // ========================================
+    // 文章发布助手
+    // ========================================
+    'article_publisher' => [
+        'enabled' => true,
+        'interval' => 120,  // 分钟
+        'publisher_user_id' => 6,  // Flarum用户ID
+        
+        // 8个专业领域配置
+        'fields' => [
+            [
+                'name' => '蛋白/抗体设计',
+                'tag_ids' => [6],  // Flarum标签ID
+                'topics' => [
+                    'AlphaFold 3结构预测实战',
+                    'RFdiffusion蛋白质设计',
+                    'ProteinMPNN序列优化',
+                    '抗体人源化改造策略',
+                ]
+            ],
+            [
+                'name' => 'AIDD',
+                'tag_ids' => [1],
+                'topics' => [
+                    '分子生成模型最新进展',
+                    'AI药物重定位策略',
+                    '基于结构的药物设计',
+                ]
+            ],
+            [
+                'name' => '合成生物学',
+                'tag_ids' => [2],
+                'topics' => [
+                    '基因线路设计自动化',
+                    '代谢通路优化算法',
+                    'DNA组装自动化技术',
+                ]
+            ],
+            [
+                'name' => '生物医药',
+                'tag_ids' => [5],
+                'topics' => [
+                    '单细胞测序数据分析',
+                    '肿瘤免疫治疗新靶点',
+                    '基因治疗载体设计',
+                ]
+            ],
+            [
+                'name' => '基因组学',
+                'tag_ids' => [7],
+                'topics' => [
+                    '长读长测序数据分析',
+                    '基因组变异检测',
+                    '宏基因组学分析流程',
+                ]
+            ],
+            [
+                'name' => '转录组学',
+                'tag_ids' => [8],
+                'topics' => [
+                    '差异表达分析最佳实践',
+                    '可变剪接定量分析',
+                    '单细胞RNA-seq数据整合',
+                ]
+            ],
+            [
+                'name' => '代谢组学/脂质组学',
+                'tag_ids' => [17],
+                'topics' => [
+                    '代谢物鉴定数据库更新',
+                    '脂质组学数据分析',
+                    '多组学数据整合',
+                ]
+            ],
+            [
+                'name' => '科研经验分享',
+                'tag_ids' => [20],
+                'topics' => [
+                    '生物信息学学习路径',
+                    'R/Python生信包推荐',
+                    '实验室数据管理规范',
+                ]
+            ],
+        ],
+    ],
+    
+    // ========================================
+    // 问答助手 (实时监听模式)
+    // ========================================
+    'question_answerer' => [
+        'enabled' => true,
+        'interval' => 0,  // 0表示使用实时监听
+        'answerer_user_id' => 7,
+        'trigger_keyword' => '@AI问答助手',
+        'max_answers_per_run' => 5,
+        
+        'realtime' => [
+            'check_interval' => 5,  // 秒
+            'response_timeout' => 120,
+        ],
+    ],
+    
+    // ========================================
+    // 专栏作家
+    // ========================================
+    'column_writer' => [
+        'enabled' => true,
+        'interval' => 120,  // 分钟
+        'writer_user_id' => 8,
+        'mode' => 'draft_for_review',  // draft_for_review / auto_publish
+        
+        'columns' => [
+            [
+                'name' => '单细胞测序技术深度解析',
+                'tag_ids' => [8],
+                'description' => '每周深度解析单细胞测序技术原理、算法和应用案例',
+                'topics' => [
+                    '单细胞数据质控与标准化',
+                    '细胞聚类算法比较',
+                    '轨迹推断方法',
+                ]
+            ],
+            [
+                'name' => '蛋白质结构预测前沿',
+                'tag_ids' => [6],
+                'description' => '追踪AlphaFold等蛋白质结构预测技术的最新进展',
+                'topics' => [
+                    'AlphaFold架构解析',
+                    '蛋白质折叠物理原理',
+                    '结构预测准确性评估',
+                ]
+            ],
+            [
+                'name' => 'AI驱动的药物发现',
+                'tag_ids' => [1],
+                'description' => '探讨人工智能在药物研发各阶段的应用',
+                'topics' => [
+                    '分子生成模型',
+                    '靶点预测算法',
+                    '临床试验优化',
+                ]
+            ],
+            [
+                'name' => '合成生物学工具箱',
+                'tag_ids' => [2],
+                'description' => '介绍合成生物学设计的计算工具和最佳实践',
+                'topics' => [
+                    '基因线路设计软件',
+                    '代谢流分析工具',
+                    'DNA组装算法',
+                ]
+            ],
+            [
+                'name' => '多组学数据整合',
+                'tag_ids' => [17],
+                'description' => '探讨如何整合基因组、转录组、蛋白组和代谢组数据',
+                'topics' => [
+                    '批次效应校正',
+                    '多组学关联分析',
+                    '网络整合方法',
+                ]
+            ],
+        ],
+    ],
+];
