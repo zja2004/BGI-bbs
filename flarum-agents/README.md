@@ -1,6 +1,45 @@
 # Flarum AI Agent 系统
 
+<!-- 徽章区域 -->
+<p align="center">
+  <!-- CI构建状态 -->
+  <a href="https://github.com/zja2004/BGI-bbs/actions">
+    <img src="https://github.com/zja2004/BGI-bbs/workflows/CI/badge.svg" alt="Build Status">
+  </a>
+  <!-- PHP版本 -->
+  <img src="https://img.shields.io/badge/PHP-%3E%3D8.0-8892BF.svg?style=flat-square&logo=php" alt="PHP Version">
+  <!-- 许可证 -->
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License">
+  </a>
+  <!-- 最后提交 -->
+  <img src="https://img.shields.io/github/last-commit/zja2004/BGI-bbs?style=flat-square" alt="Last Commit">
+  <!-- 仓库大小 -->
+  <img src="https://img.shields.io/github/repo-size/zja2004/BGI-bbs?style=flat-square" alt="Repo Size">
+  <!-- 代码行数 -->
+  <img src="https://img.shields.io/tokei/lines/github/zja2004/BGI-bbs?style=flat-square" alt="Lines of Code">
+</p>
+
+<p align="center">
+  <!-- AI模型 -->
+  <img src="https://img.shields.io/badge/AI-Qwen3--235B-blueviolet?style=flat-square&logo=openai" alt="AI Model">
+  <!-- 响应时间 -->
+  <img src="https://img.shields.io/badge/Response-5s-brightgreen?style=flat-square" alt="Response Time">
+  <!-- 功能模块 -->
+  <img src="https://img.shields.io/badge/Agents-3-orange?style=flat-square" alt="Agent Count">
+</p>
+
+---
+
 🤖 自动为Flarum论坛发布文章、回答问题、撰写专栏的AI Agent系统
+
+## 📑 目录
+
+- [系统架构](#系统架构)
+- [AI模型](#ai模型)
+- [功能模块](#功能模块)
+- [快速开始](#快速开始)
+- [文档](#文档)
 
 ## 系统架构
 
@@ -28,10 +67,16 @@
 
 ### 当前模型: Qwen3-235B-A22B
 
-- **参数量**: 2350亿 (MoE架构，激活22B)
-- **上下文**: 128K tokens
-- **部署**: 本地部署 (http://172.16.224.137:1024/v1)
-- **优势**: 代码能力强、超长上下文、稳定无限制
+| 属性 | 详情 |
+|------|------|
+| **模型名称** | Qwen3-235B-A22B |
+| **参数量** | 2350亿 (MoE架构) |
+| **激活参数** | 220亿 |
+| **上下文** | 128K tokens |
+| **部署** | 本地部署 |
+| **API地址** | http://172.16.224.137:1024/v1 |
+
+**优势**: 代码能力强、超长上下文、稳定无限制
 
 详见 [MODEL_INFO.md](MODEL_INFO.md)
 
@@ -54,132 +99,56 @@
 
 ## 快速开始
 
-### 安装依赖
+### 安装
+
 ```bash
-cd flarum-agents
+git clone https://github.com/zja2004/BGI-bbs.git
+cd BGI-bbs/flarum-agents
 composer install
 ```
 
 ### 配置
+
 ```bash
 cp config/agents.php.example config/agents.php
-# 编辑 config/agents.php 配置API密钥和用户信息
+# 编辑 config/agents.php 填入配置
 ```
 
-### 运行
+### 启动
+
 ```bash
-# 单次运行
-php agent.php
+# 启动实时监听器
+./listener.sh start
 
-# 守护模式（推荐）
-php agent.php --daemon
-
-# 查看状态
-php agent.php --status
-```
-
-### 问答助手实时监听
-```bash
 # 查看状态
 ./listener.sh status
-
-# 查看日志
-./listener.sh logs
-
-# 实时跟踪
-./listener.sh follow
 ```
 
-## 配置说明
+## 文档
 
-```php
-// config/agents.php
-return [
-    'global' => [
-        'flarum' => [
-            'base_url' => 'https://your-forum.com',
-            'api_key' => 'your-api-key',
-        ],
-        'ai' => [
-            'api_key' => 'dummy-key-for-local',
-            'model' => 'Qwen3-235B-A22B',
-            'base_url' => 'http://172.16.224.137:1024/v1',
-        ],
-    ],
-    'article_publisher' => [
-        'enabled' => true,
-        'interval' => 120,  // 分钟
-        'publisher_user_id' => 6,
-        'fields' => [...],
-    ],
-    'question_answerer' => [
-        'enabled' => true,
-        'answerer_user_id' => 7,
-        'trigger_keyword' => '@AI问答助手',
-        'realtime' => [
-            'check_interval' => 5,  // 秒
-        ],
-    ],
-    'column_writer' => [
-        'enabled' => true,
-        'interval' => 120,
-        'writer_user_id' => 8,
-        'mode' => 'draft_for_review',
-    ],
-];
-```
+| 文档 | 说明 |
+|------|------|
+| [DOCUMENTATION.md](DOCUMENTATION.md) | 📚 文档索引 |
+| [QUICKSTART.md](QUICKSTART.md) | 🚀 快速启动指南 |
+| [OPERATIONS.md](OPERATIONS.md) | 🔧 完整运维手册 |
+| [MODEL_INFO.md](MODEL_INFO.md) | 🤖 AI模型信息 |
+| [REALTIME_LISTENER.md](REALTIME_LISTENER.md) | ⚡ 实时监听说明 |
 
-## 系统服务
+## 性能指标
 
-```bash
-# 启用开机自启
-sudo systemctl enable flarum-ai-listener
-
-# 管理服务
-sudo systemctl {start|stop|restart} flarum-ai-listener
-
-# 或使用管理脚本
-./listener.sh {start|stop|restart|status|logs}
-```
-
-## 目录结构
-
-```
-flarum-agents/
-├── agents/                 # Agent实现
-│   ├── ArticlePublisherAgent.php
-│   ├── QuestionAnswererAgent.php
-│   └── ColumnWriterAgent.php
-├── core/                   # 核心组件
-│   ├── BaseAgent.php      # 基类
-│   ├── FlarumClient.php   # Flarum API客户端
-│   └── RealtimeListener.php # 实时监听器
-├── config/                 # 配置文件
-│   └── agents.php
-├── drafts/                 # 专栏草稿
-├── runtime/                # 运行时文件
-├── vendor/                 # 依赖
-├── listen.php             # 监听启动脚本
-├── listener.sh            # 管理脚本
-├── agent.php              # 主入口
-├── MODEL_INFO.md          # 模型信息
-└── README.md              # 本文档
-```
-
-## 依赖
-
-- PHP >= 8.0
-- ext-curl
-- ext-json
-- Composer
-
-## 更新日志
-
-- **2026-03-11**: 实现实时监听器，响应时间从30分钟缩短到5秒
-- **2026-03-11**: 统一触发词为 @AI问答助手
-- **2026-03-10**: 切换到 Qwen3-235B-A22B 本地部署
-- **2026-03-10**: 初始版本，支持三Agent系统
+| 指标 | 数值 |
+|------|------|
+| 检测延迟 | < 5秒 |
+| AI生成时间 | 10-60秒 |
+| 总响应时间 | 15-65秒 |
+| 轮询间隔 | 5秒 |
 
 ## 许可证
 
-MIT
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  Made with ❤️ for Bioinformatics Community
+</p>
