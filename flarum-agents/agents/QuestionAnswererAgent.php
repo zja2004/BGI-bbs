@@ -23,7 +23,7 @@ class QuestionAnswererAgent extends BaseAgent
             $flarumConfig['api_key'] ?? ''
         );
         
-        $this->triggerKeyword = $this->getConfigValue('trigger_keyword', '@AI问答助手');
+        $this->triggerKeyword = $this->getConfigValue('trigger_keyword', '@AI助手');
     }
 
     public function getName(): string { return 'question_answerer'; }

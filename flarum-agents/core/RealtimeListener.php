@@ -126,7 +126,7 @@ class RealtimeListener
     
     private function containsTrigger(string $content): bool
     {
-        $triggerKeyword = '@AI问答助手';
+        $triggerKeyword = '@AI助手';
         return strpos($content, $triggerKeyword) !== false;
     }
     
