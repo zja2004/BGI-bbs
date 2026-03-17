@@ -96,7 +96,13 @@ class QuestionAnswererAgent extends BaseAgent
             }
 
             try {
-                $answer = $this->generateAnswer($title, $content);
+                // 判断是否是总结请求
+                if ($this->isSummaryRequest($title, $content)) {
+                    $this->log('info', '识别为总结请求', ['id' => $discussionId]);
+                    $answer = $this->generateSummary($title, $content);
+                } else {
+                    $answer = $this->generateAnswer($title, $content);
+                }
                 
                 $userId = $this->getConfigValue('answerer_user_id');
                 $this->flarum->replyToDiscussion($discussionId, $answer, $userId);
@@ -140,6 +146,38 @@ class QuestionAnswererAgent extends BaseAgent
         return false;
     }
 
+    /**
+     * 判断是否是总结请求
+     */
+    protected function isSummaryRequest(string $title, string $content): bool
+    {
+        $summaryKeywords = [
+            '总结一下',
+            '总结',
+            '概括',
+            '归纳',
+            '提炼',
+            '精简',
+            '简要说明',
+            '一句话',
+            '核心要点',
+            '要点',
+            'tl;dr',
+            'TL;DR',
+            'tldr',
+        ];
+        
+        $combinedText = $title . ' ' . $content;
+        
+        foreach ($summaryKeywords as $keyword) {
+            if (strpos($combinedText, $keyword) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     protected function hasBeenAnswered(int $discussionId): bool
     {
         $file = __DIR__ . '/../config/answered_questions.json';
@@ -159,6 +197,88 @@ class QuestionAnswererAgent extends BaseAgent
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
     }
 
+    /**
+     * 生成精炼总结（专门针对总结请求）
+     */
+    public function generateSummary(string $title, string $content): string
+    {
+        $systemPrompt = <<<PROMPT
+你是一位内容提炼专家。用户要求你对提供的内容进行精炼总结。
+
+【极其重要】总结要求：
+1. 总字数控制在150字以内（严格限制）
+2. 格式：3-5条 bullet points
+3. 每条：1句话，不超过25字
+4. 只提取核心要点，删除所有解释、例子、背景
+5. 不要重复标题
+6. 不要添加"综上所述"等套话
+7. 直接输出总结，不要问候语
+
+错误示例（太长）：
+❌ "这篇文章主要介绍了AlphaFold 3的原理，它是如何工作的，以及在实际应用中有哪些优势和局限性..."
+
+正确示例（精炼）：
+✅ "- 核心技术：扩散模型预测原子坐标
+- 优势：比AlphaFold 2精度提高30%
+- 局限：计算资源需求高
+- 应用：蛋白质-配体相互作用预测"
+
+你的回复应该只有bullet points，没有其他内容。
+PROMPT;
+
+        $prompt = <<<PROMPT
+请对以下内容进行精炼总结：
+
+【标题】
+$title
+
+【内容】
+$content
+
+要求：
+1. 提取核心要点，150字以内
+2. 3-5条bullet points
+3. 每条1句话，≤25字
+4. 零废话、零解释
+5. 直接输出，不要问候
+
+格式示例：
+- 要点1...
+- 要点2...
+- 要点3...
+PROMPT;
+
+        $result = $this->callAI($prompt, $systemPrompt);
+        $summary = $result['choices'][0]['message']['content'] ?? '';
+        
+        // 清理可能的多余内容
+        $summary = preg_replace('/^(总结|归纳|提炼)[:：]?\s*/i', '', $summary);
+        $summary = trim($summary);
+        
+        // 如果超过150字，截断
+        if (mb_strlen($summary) > 150) {
+            $lines = explode("\n", $summary);
+            $shortSummary = [];
+            $currentLength = 0;
+            
+            foreach ($lines as $line) {
+                $lineLength = mb_strlen($line);
+                if ($currentLength + $lineLength > 140) {
+                    break;
+                }
+                $shortSummary[] = $line;
+                $currentLength += $lineLength;
+            }
+            
+            $summary = implode("\n", $shortSummary);
+        }
+        
+        return $summary;
+    }
+
+    /**
+     * 生成普通回答
+     */
     public function generateAnswer(string $title, string $content): string
     {
         $systemPrompt = <<<PROMPT
