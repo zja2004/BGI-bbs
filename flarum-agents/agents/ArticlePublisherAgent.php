@@ -24,21 +24,19 @@ class ArticlePublisherAgent extends BaseAgent
     }
 
     public function getName(): string { return 'article_publisher'; }
-    public function getDescription(): string { return '每2小时自动发布一篇生物信息学/AI领域的专业文章'; }
+    public function getDescription(): string { return '每2小时自动发布生物信息学前沿文章'; }
 
     public function execute(): array
     {
         $this->log('info', '开始执行文章发布任务');
-
-        $field = $this->selectField();
-        $topic = $this->selectTopic($field);
         
-        $this->log('info', "选中领域: {$field['name']}, 主题: $topic");
-
-        $searchResults = $this->searchLatestInfo($field['name'], $topic);
-        $this->log('info', '完成联网搜索');
-
-        $article = $this->generateArticle($field, $topic, $searchResults);
+        $field = $this->selectField();
+        $this->log('info', '选择领域', ['field' => $field['name']]);
+        
+        $topic = $this->selectTopic($field);
+        $this->log('info', '选择主题', ['topic' => $topic]);
+        
+        $article = $this->generateArticle($field, $topic);
         $this->log('info', '文章生成完成', ['title' => $article['title'], 'length' => strlen($article['content'])]);
 
         $tags = $field['tag_ids'] ?? [];
@@ -69,19 +67,19 @@ class ArticlePublisherAgent extends BaseAgent
         return $field;
     }
 
+    protected function getFields(): array
+    {
+        return $this->getConfigValue('fields', []);
+    }
+
     protected function selectTopic(array $field): string
     {
-        return $field['topics'][array_rand($field['topics'])];
+        $topics = $field['topics'] ?? [];
+        return $topics[array_rand($topics)];
     }
 
-    protected function searchLatestInfo(string $field, string $topic): array
+    protected function generateArticle(array $field, string $topic): array
     {
-        return $this->searchWeb("$topic 最新进展 2024 2025");
-    }
-
-    protected function generateArticle(array $field, string $topic, array $research): array
-    {
-        // 专业的生信领域系统提示词
         $systemPrompt = <<<PROMPT
 你是一位资深的{$field['name']}领域专家，专注于生物信息学与人工智能的交叉研究。
 
@@ -95,44 +93,50 @@ class ArticlePublisherAgent extends BaseAgent
 7. 使用Markdown格式，包含适当的标题层级、列表和强调
 8. 结尾提出开放性问题，引导读者讨论
 
+重要：不要添加任何关于AI生成、作者信息或发布时间的声明。直接输出文章内容即可。
+
 避免：
 - 泛泛而谈的内容
-- 与生物信息学无关的通用技术讨论
-- 过于基础的科普内容（假设读者有一定专业背景）
+- "本文由AI生成"等声明
+- 作者署名
+- 发布日期
 PROMPT;
 
         $prompt = <<<PROMPT
-请撰写一篇关于"{$topic}"的专业文章。
+请撰写一篇关于"{$topic}"的技术文章。
 
-要求：
-1. 标题要吸引人且准确反映内容，体现生物信息学专业特色
-2. 文章结构：引言 → 技术背景 → 核心方法/工具 → 实际应用案例 → 总结与展望
-3. 包含具体的技术细节，如算法名称、软件版本、参数设置等
-4. 如果涉及代码，请提供Python/R代码示例
-5. 引用相关的生物数据库（如PDB、UniProt、NCBI等）
-6. 提及该领域的最新进展（2024-2025年）
-7. 文章要实用，读者能从中获得可操作的见解
+文章结构建议：
+1. 引言 - 介绍主题背景和重要性
+2. 核心内容 - 技术细节、方法论、工具使用
+3. 实践案例 - 具体的代码示例或分析流程
+4. 总结与展望 - 要点总结和未来发展方向
+5. 讨论问题 - 提出2-3个开放性问题供读者讨论
+
+请确保内容深入、实用，能够帮助读者掌握相关技能。
 PROMPT;
 
         $result = $this->callAI($prompt, $systemPrompt);
         $content = $result['choices'][0]['message']['content'] ?? '';
-
+        
+        // 清理AI标识
+        $content = preg_replace('/\n+\s*[-—]*\s*本文由.+生成.*$/isu', '', $content);
+        $content = preg_replace('/\n+\s*[-—]*\s*AI生成.*$/isu', '', $content);
+        $content = preg_replace('/\n+\s*[-—]*\s*由\s*Qwen.*驱动.*$/isu', '', $content);
+        
         // 提取标题
-        $title = '';
-        if (preg_match('/^#\s*(.+)$/m', $content, $matches)) {
-            $title = trim($matches[1]);
-            $content = preg_replace('/^#\s*.+$/m', '', $content, 1);
+        $lines = explode("\n", $content);
+        $title = $topic;
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (strpos($line, '# ') === 0) {
+                $title = trim(substr($line, 2));
+                break;
+            }
         }
-        if (empty($title)) {
-            $lines = explode("\n", $content);
-            $title = trim($lines[0]);
-        }
-
-        return ['title' => $title, 'content' => trim($content)];
-    }
-
-    protected function getFields(): array
-    {
-        return $this->getConfigValue('fields', []);
+        
+        return [
+            'title' => $title,
+            'content' => $content
+        ];
     }
 }
