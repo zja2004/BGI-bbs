@@ -27,7 +27,7 @@ class QuestionAnswererAgent extends BaseAgent
     }
 
     public function getName(): string { return 'question_answerer'; }
-    public function getDescription(): string { return '每30分钟检测被@的帖子并回答'; }
+    public function getDescription(): string { return '实时检测被@的帖子并回答'; }
 
     public function execute(): array
     {
@@ -54,11 +54,9 @@ class QuestionAnswererAgent extends BaseAgent
                 continue;
             }
 
-            // 获取帖子内容（从posts中获取第一个帖子）
             try {
                 $posts = $this->flarum->getDiscussionPosts($discussionId);
                 
-                // 找到第一个帖子（number=1）
                 $firstPost = null;
                 foreach ($posts as $post) {
                     if (($post['attributes']['number'] ?? 0) === 1) {
@@ -74,7 +72,6 @@ class QuestionAnswererAgent extends BaseAgent
                 
                 $content = $firstPost['attributes']['content'] ?? '';
                 
-                // 检查是否包含触发关键词
                 if (!$this->isTaggedForAnswer($title, $content)) {
                     $notTagged++;
                     continue;
@@ -86,7 +83,6 @@ class QuestionAnswererAgent extends BaseAgent
                 continue;
             }
 
-            // 检查是否已有其他用户回复
             $otherReplies = 0;
             foreach ($posts as $post) {
                 if (($post['attributes']['number'] ?? 0) > 1) {
@@ -99,7 +95,6 @@ class QuestionAnswererAgent extends BaseAgent
                 continue;
             }
 
-            // 生成并提交回答
             try {
                 $answer = $this->generateAnswer($title, $content);
                 
@@ -169,21 +164,36 @@ class QuestionAnswererAgent extends BaseAgent
         $systemPrompt = <<<PROMPT
 你是一位资深的生物信息学专家，被用户在论坛中@请求回答问题。
 
-回答要求：
-1. 以友善、专业的方式回应用户的@请求
-2. 直接针对问题提供实用、可操作的解决方案
-3. 如果涉及软件/工具，提供具体的版本、参数和命令
-4. 如果涉及代码，提供完整的代码示例（Python/R/Bash）
-5. 引用相关的数据库、文献或最佳实践
-6. 解释"为什么"，帮助提问者理解背后的原理
-7. 保持友善、专业的语气
-8. 使用Markdown格式，包含代码块、列表等
-9. 结尾可以邀请用户继续提问或深入讨论
+回答结构（必须严格遵循）：
+1. 简要回应（1-2句话）
+2. 核心解答（分点说明，每点简洁）
+3. 【一句话总结】（控制在50字以内，直接给出结论）
 
-回复格式建议：
-- 开头："感谢@！关于您的问题..."
-- 中间：详细解答
-- 结尾：鼓励进一步交流
+回答要求：
+1. 直接针对问题，不绕弯子
+2. 如果涉及软件/工具，提供具体版本、参数
+3. 如果涉及代码，提供最小可运行示例
+4. 解释"为什么"控制在2-3句话
+5. 使用Markdown格式
+6. 【总结必须精炼】用一句话概括核心要点
+
+【重要】总结部分要求：
+- 只能是1句话
+- 不超过50字
+- 直接给出结论或建议
+- 不要重复正文
+
+回复格式示例：
+```
+关于您的问题...
+
+## 解答
+1. 要点1...
+2. 要点2...
+
+## 总结
+一句话核心结论。
+```
 PROMPT;
 
         $prompt = <<<PROMPT
@@ -195,13 +205,17 @@ $title
 【帖子内容】
 $content
 
-请提供专业、详细的回答。要求：
-1. 开头回应@，表示感谢
-2. 直接回答核心问题
-3. 提供具体的技术细节（软件名称、版本、关键参数）
-4. 如有必要，提供代码示例
-5. 解释相关概念，帮助理解
-6. 使用Markdown格式
+请提供简洁专业的回答。要求：
+1. 开头简要回应（1-2句）
+2. 直接回答核心问题（分点，每点简洁）
+3. 【一句话总结】（不超过50字，直接结论）
+4. 提供必要的代码/命令示例（精简版）
+5. 使用Markdown格式
+
+特别注意：
+- 总结只能是1句话，50字以内
+- 不要长篇大论的总结段落
+- 直接给出核心结论即可
 PROMPT;
 
         $result = $this->callAI($prompt, $systemPrompt);
