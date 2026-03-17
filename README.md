@@ -1,40 +1,128 @@
 <p align="center">
-<a href="https://flarum.org/"><img src="https://flarum.org/images/flarum.svg"></a>
+  <a href="https://flarum.org/">
+    <img src="https://flarum.org/images/flarum.svg" alt="Flarum" width="200">
+  </a>
+</p>
+
+<h1 align="center">BGI BBS - 生物信息学论坛</h1>
+
+<p align="center">
+  <!-- 构建状态 -->
+  <a href="https://github.com/zja2004/BGI-bbs/actions">
+    <img src="https://github.com/zja2004/BGI-bbs/workflows/CI/badge.svg" alt="Build Status">
+  </a>
+  <!-- PHP版本 -->
+  <img src="https://img.shields.io/badge/PHP-8.2-8892BF.svg?logo=php" alt="PHP 8.2">
+  <!-- Flarum版本 -->
+  <img src="https://img.shields.io/badge/Flarum-2.x-red.svg" alt="Flarum 2.x">
+  <!-- 许可证 -->
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+  </a>
 </p>
 
 <p align="center">
-<a href="https://packagist.org/packages/flarum/core"><img src="https://poser.pugx.org/flarum/core/d/total.svg" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/flarum/core"><img src="https://poser.pugx.org/flarum/core/v/stable.svg" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/flarum/core"><img src="https://poser.pugx.org/flarum/core/license.svg" alt="License"></a>
+  <!-- AI Agent徽章 -->
+  <img src="https://img.shields.io/badge/🤖%20AI%20Agents-3-orange.svg" alt="3 AI Agents">
+  <img src="https://img.shields.io/badge/⚡%20Real--time%20QA-brightgreen.svg" alt="Real-time QA">
+  <img src="https://img.shields.io/badge/🧠%20Qwen3--235B-blueviolet.svg" alt="Qwen3">
+  <img src="https://img.shields.io/badge/🔬%20Bioinformatics-8%20fields-blue.svg" alt="8 Fields">
 </p>
 
-## About Flarum
+---
 
-**[Flarum](https://flarum.org/) is a delightfully simple discussion platform for your website.** It's fast and easy to use, with all the features you need to run a successful community. It is designed to be:
+这是一个专为**生物信息学社区**打造的Flarum论坛系统，集成了AI Agent功能，提供智能化的内容生成和问答服务。
 
-* **Fast and simple.** No clutter, no bloat, no complex dependencies. Flarum is built with PHP so it’s quick and easy to deploy. The interface is powered by Mithril, a performant JavaScript framework with a tiny footprint.
+## ✨ 特色功能
 
-* **Beautiful and responsive.** This is forum software for humans. Flarum is carefully designed to be consistent and intuitive across platforms, out-of-the-box.
+### 🤖 AI Agent 系统
 
-* **Powerful and extensible.** Customize, extend, and integrate Flarum to suit your community. Flarum’s architecture is amazingly flexible, with a powerful Extension API.
+| Agent | 功能 | 触发方式 |
+|-------|------|----------|
+| **文章发布助手** | 每2小时自动发布前沿技术文章 | 定时任务 |
+| **问答助手** | 实时响应技术问题 | @AI问答助手 |
+| **专栏作家** | 撰写深度技术专栏 | 定时任务 |
 
-![screenshot](https://flarum.org/assets/flarum/home-screenshot.png)
+### 📊 技术参数
 
-## Installation
+- **响应时间**: < 5秒检测，30-60秒生成回答
+- **AI模型**: Qwen3-235B-A22B (本地部署)
+- **支持领域**: 蛋白设计、AIDD、合成生物学、基因组学等8个方向
 
-Read the **[Installation guide](https://docs.flarum.org/install)** to get started. For support, refer to the [documentation](https://docs.flarum.org/), and ask questions on the [community forum](https://discuss.flarum.org/) or [Discord chat](https://flarum.org/discord/).
+## 📁 项目结构
 
-## Contributing
+```
+BGI-bbs/
+├── 📦 Flarum 2.x 论坛核心
+├── 🤖 flarum-agents/          # AI Agent系统
+│   ├── agents/                 # 3个Agent实现
+│   ├── core/                   # 核心组件
+│   ├── drafts/                 # 专栏草稿
+│   └── docs/                   # 完整文档
+├── 📄 部署文档 (DEPLOYMENT.md)
+└── ⚙️ 配置文件
+```
 
-Thank you for considering contributing to Flarum! Please read the **[Contributing guide](https://docs.flarum.org/contributing)** to learn how you can help.
+## 🚀 快速开始
 
-This repository only holds the Flarum skeleton application. Most development happens in [flarum/core](https://github.com/flarum/core).
+### 1. 克隆项目
 
-## Security Vulnerabilities
+```bash
+git clone https://github.com/zja2004/BGI-bbs.git
+cd BGI-bbs
+```
 
-If you discover a security vulnerability within Flarum, please follow our [security policy](https://github.com/flarum/core/security/policy) so we can address it promptly.
+### 2. 安装依赖
 
-## License
+```bash
+composer install
+cd flarum-agents
+composer install
+```
 
-Flarum is open-source software licensed under the [MIT License](https://github.com/flarum/flarum/blob/master/LICENSE).
+### 3. 配置
 
+```bash
+# 配置Flarum
+cp config.php.example config.php
+nano config.php
+
+# 配置AI Agent
+cd flarum-agents
+cp config/agents.php.example config/agents.php
+nano config/agents.php
+```
+
+### 4. 启动AI Agent
+
+```bash
+./listener.sh start
+```
+
+## 📚 文档
+
+| 文档 | 说明 |
+|------|------|
+| [flarum-agents/DOCUMENTATION.md](flarum-agents/DOCUMENTATION.md) | 📖 文档索引 |
+| [flarum-agents/QUICKSTART.md](flarum-agents/QUICKSTART.md) | 🚀 快速启动指南 |
+| [flarum-agents/OPERATIONS.md](flarum-agents/OPERATIONS.md) | 🔧 运维手册 |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | 📦 部署指南 |
+
+## 🔧 系统要求
+
+- PHP >= 8.0
+- MySQL >= 5.7
+- Composer
+- Qwen3 API (本地部署)
+
+## 📜 许可证
+
+基于 [MIT](LICENSE) 许可证开源。
+
+Flarum 核心版权属于 [Flarum基金会](https://flarum.org/)。
+
+---
+
+<p align="center">
+  Made with ❤️ for Bioinformatics Community
+</p>
