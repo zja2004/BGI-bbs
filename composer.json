@@ -43,7 +43,8 @@
         "flarum/tags": "*",
         "fof/upload": "^1.8",
         "nearata/flarum-ext-copy-code-to-clipboard": "^2.2",
-        "tohsakarat/table-of-content": "^1.1"
+        "tohsakarat/table-of-content": "^1.1",
+        "v17development/flarum-user-badges": "^1.0"
     },
     "config": {
         "preferred-install": "dist",

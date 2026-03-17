@@ -1,0 +1,110 @@
+<?php
+/**
+ * Flarum AI Agent 配置文件
+ * 
+ * 系统说明:
+ * - 实时监听模式：AI问答助手现在使用实时监听器，检测到@后5秒内开始回答
+ * - 传统定时模式：文章发布和专栏撰写仍使用定时任务
+ * 
+ * 管理命令:
+ * - 查看状态: ./listener.sh status
+ * - 查看日志: ./listener.sh logs
+ * - 实时跟踪: ./listener.sh follow
+ * - 重启服务: ./listener.sh restart
+ */
+
+return [
+    'global' => [
+        'flarum' => [
+            'base_url' => 'https://172.16.218.40',
+            'api_key' => '29cdb349-eaa5-2a55-be53-6f875d154114',
+        ],
+        'ai' => [
+            'api_key' => 'dummy-key-for-local',
+            'model' => 'Qwen3-235B-A22B',
+            'base_url' => 'http://172.16.224.137:1024/v1',
+        ],
+    ],
+    
+    /**
+     * 文章发布助手
+     * 定时发布生物信息学领域的前沿文章
+     */
+    'article_publisher' => [
+        'enabled' => true,
+        'interval' => 120,  // 分钟
+        'publisher_user_id' => 6,
+        'fields' => [
+            ['name' => '蛋白/抗体设计', 'tag_ids' => [6], 'topics' => ['AlphaFold 3结构预测实战', 'RFdiffusion蛋白质设计', 'ProteinMPNN序列优化', '抗体人源化改造策略', '深度学习驱动的抗体亲和力成熟']],
+            ['name' => 'AIDD', 'tag_ids' => [1], 'topics' => ['分子生成模型最新进展', 'AI药物重定位策略', '基于结构的药物设计', 'ADMET性质预测模型', '深度学习分子表示学习']],
+            ['name' => '合成生物学', 'tag_ids' => [2], 'topics' => ['基因线路设计自动化', '代谢通路优化算法', 'DNA组装自动化技术', '生物传感器设计', '合成基因组学进展']],
+            ['name' => '生物医药', 'tag_ids' => [5], 'topics' => ['单细胞测序数据分析', '肿瘤免疫治疗新靶点', '基因治疗载体设计', 'mRNA疫苗序列优化', 'CRISPR脱靶预测']],
+            ['name' => '基因组学', 'tag_ids' => [7], 'topics' => ['长读长测序数据分析', '基因组变异检测', '宏基因组学分析流程', '三代测序基因组组装', '人群基因组学研究']],
+            ['name' => '转录组学', 'tag_ids' => [8], 'topics' => ['差异表达分析最佳实践', '可变剪接定量分析', '单细胞RNA-seq数据整合', '空间转录组学分析', '转录因子网络推断']],
+            ['name' => '代谢组学/脂质组学', 'tag_ids' => [17], 'topics' => ['代谢物鉴定数据库更新', '脂质组学数据分析', '多组学数据整合', '代谢通路富集分析', '机器学习代谢物分类']],
+            ['name' => '科研经验分享', 'tag_ids' => [20], 'topics' => ['生物信息学学习路径', 'R/Python生信包推荐', '实验室数据管理规范', '科研论文写作技巧', '生信云平台使用指南']],
+        ],
+    ],
+    
+    /**
+     * 问题回答助手
+     * 实时监听@触发，立即回答
+     * 
+     * 服务状态: systemctl status flarum-ai-listener
+     * 查看日志: ./listener.sh logs
+     */
+    'question_answerer' => [
+        'enabled' => true,
+        'interval' => 0,  // 0表示使用实时监听模式
+        'answerer_user_id' => 7,
+        'trigger_keyword' => '@AI问答助手',
+        'max_answers_per_run' => 5,
+        'realtime' => [
+            'check_interval' => 5,  // 秒，监听间隔
+            'response_timeout' => 120,  // 秒，最大响应时间
+        ],
+    ],
+    
+    /**
+     * 专栏作家
+     * 定期撰写深度技术专栏（保存为草稿待审核）
+     */
+    'column_writer' => [
+        'enabled' => true,
+        'interval' => 120,  // 分钟
+        'writer_user_id' => 8,
+        'mode' => 'draft_for_review',  // draft_for_review 或 auto_publish
+        'columns' => [
+            [
+                'name' => '单细胞测序技术深度解析',
+                'tag_ids' => [8],
+                'description' => '每周深度解析单细胞测序技术原理、算法和应用案例',
+                'topics' => ['单细胞数据质控与标准化', '细胞聚类算法比较', '轨迹推断方法', '细胞通讯分析', '空间转录组整合']
+            ],
+            [
+                'name' => '蛋白质结构预测前沿',
+                'tag_ids' => [6],
+                'description' => '追踪AlphaFold等蛋白质结构预测技术的最新进展',
+                'topics' => ['AlphaFold架构解析', '蛋白质折叠物理原理', '结构预测准确性评估', '蛋白质-配体对接', '结构引导的药物设计']
+            ],
+            [
+                'name' => 'AI驱动的药物发现',
+                'tag_ids' => [1],
+                'description' => '探讨人工智能在药物研发各阶段的应用',
+                'topics' => ['分子生成模型', '靶点预测算法', '临床试验优化', '药物重定位策略', '毒理预测模型']
+            ],
+            [
+                'name' => '合成生物学工具箱',
+                'tag_ids' => [2],
+                'description' => '介绍合成生物学设计的计算工具和最佳实践',
+                'topics' => ['基因线路设计软件', '代谢流分析工具', 'DNA组装算法', '启动子优化', '生物反应器建模']
+            ],
+            [
+                'name' => '多组学数据整合',
+                'tag_ids' => [17],
+                'description' => '探讨如何整合基因组、转录组、蛋白组和代谢组数据',
+                'topics' => ['批次效应校正', '多组学关联分析', '网络整合方法', '机器学习在多组学中的应用', '可视化策略']
+            ],
+        ],
+    ],
+];

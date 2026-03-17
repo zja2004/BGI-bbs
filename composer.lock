@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f9c8786b68f1f58e74d01e002462fea5",
+    "content-hash": "890f9ba50171ba1fe764cbc53ae36c1a",
     "packages": [
         {
             "name": "askvortsov/flarum-markdown-tables",
@@ -9866,6 +9866,84 @@
                 }
             ],
             "time": "2024-05-31T12:04:43+00:00"
+        },
+        {
+            "name": "v17development/flarum-user-badges",
+            "version": "v1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/v17development/flarum-user-badges.git",
+                "reference": "4befee8575986b94b1fa47b133736c06870aa159"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/v17development/flarum-user-badges/zipball/4befee8575986b94b1fa47b133736c06870aa159",
+                "reference": "4befee8575986b94b1fa47b133736c06870aa159",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "flarum/core": "^1.3.1"
+            },
+            "suggest": {
+                "askvortsov/flarum-auto-moderator": "Allows you to automatically hand out badges to users"
+            },
+            "type": "flarum-extension",
+            "extra": {
+                "flarum-cli": {
+                    "modules": {
+                        "js": true,
+                        "css": true,
+                        "admin": true,
+                        "forum": true,
+                        "gitConf": true,
+                        "styleci": true,
+                        "jsCommon": true,
+                        "prettier": true,
+                        "typescript": false,
+                        "bundlewatch": false,
+                        "editorConfig": true,
+                        "githubActions": true,
+                        "backendTesting": false
+                    }
+                },
+                "flarum-extension": {
+                    "icon": {
+                        "name": "fas fa-user-tag",
+                        "color": "#225650",
+                        "backgroundColor": "#00ccb3"
+                    },
+                    "title": "User badges",
+                    "category": "feature",
+                    "optional-dependencies": [
+                        "askvortsov/flarum-auto-moderator"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "V17Development\\FlarumUserBadges\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "V17 Development",
+                    "email": "info@v17.dev"
+                }
+            ],
+            "description": "Adds user badges to your Flarum community",
+            "homepage": "https://v17.dev/projects/flarum-user-badges",
+            "support": {
+                "docs": "https://community.v17.dev/knowledgebase/category/flarum-user-badges",
+                "forum": "https://discuss.flarum.org/d/26449",
+                "issues": "https://github.com/v17development/flarum-user-badges/issues",
+                "source": "https://github.com/v17development/flarum-user-badges"
+            },
+            "time": "2022-07-03T22:30:54+00:00"
         },
         {
             "name": "voku/portable-ascii",
