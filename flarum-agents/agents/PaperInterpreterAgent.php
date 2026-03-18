@@ -7,12 +7,11 @@ use FlarumAgents\Core\FlarumClient;
 
 /**
  * 论文解读Agent
- * 每2小时读取一篇未解读的预印本论文，生成中文解读文章
+ * 每2小时读取一篇未解读的预印本论文（基于元数据），生成中文解读文章
  */
 class PaperInterpreterAgent extends BaseAgent
 {
     private FlarumClient $flarum;
-    private string $pdfDir;
     private string $metadataDir;
     private string $interpretedDir;
     
@@ -29,7 +28,6 @@ class PaperInterpreterAgent extends BaseAgent
             $flarumConfig['api_key'] ?? ''
         );
         
-        $this->pdfDir = __DIR__ . '/../preprints/pdf/';
         $this->metadataDir = __DIR__ . '/../preprints/metadata/';
         $this->interpretedDir = __DIR__ . '/../preprints/interpreted/';
     }
@@ -41,12 +39,12 @@ class PaperInterpreterAgent extends BaseAgent
     {
         $this->log('info', '开始执行论文解读任务');
         
-        // 获取待解读的论文
+        // 获取待解读的论文（基于元数据）
         $pendingPapers = $this->getPendingPapers();
         
         if (empty($pendingPapers)) {
             $this->log('info', '没有待解读的论文');
-            return ['success' => true, 'message' => '没有待解读的论文'];
+            return ['success' => true, 'message' => '没有待解读的论文，请先运行preprint_retriever获取论文元数据'];
         }
         
         // 选择最新的一篇
@@ -54,7 +52,7 @@ class PaperInterpreterAgent extends BaseAgent
         $this->log('info', '选择论文', ['doi' => $paper['doi'], 'title' => $paper['metadata']['title'] ?? '']);
         
         try {
-            // 生成解读
+            // 生成解读（基于元数据，无需PDF）
             $interpretation = $this->interpretPaper($paper);
             
             // 发布到论坛
@@ -96,20 +94,20 @@ class PaperInterpreterAgent extends BaseAgent
     }
 
     /**
-     * 获取待解读的论文列表
+     * 获取待解读的论文列表（基于元数据）
      */
     protected function getPendingPapers(): array
     {
         $pending = [];
         
-        if (!is_dir($this->pdfDir)) {
+        if (!is_dir($this->metadataDir)) {
             return $pending;
         }
         
-        $pdfFiles = glob($this->pdfDir . '*.pdf');
+        $metadataFiles = glob($this->metadataDir . '*.json');
         
-        foreach ($pdfFiles as $pdfFile) {
-            $basename = basename($pdfFile, '.pdf');
+        foreach ($metadataFiles as $metadataFile) {
+            $basename = basename($metadataFile, '.json');
             $interpretedFile = $this->interpretedDir . $basename . '.json';
             
             // 检查是否已解读
@@ -118,16 +116,12 @@ class PaperInterpreterAgent extends BaseAgent
             }
             
             // 读取元数据
-            $metadataFile = $this->metadataDir . $basename . '.json';
-            $metadata = [];
-            if (file_exists($metadataFile)) {
-                $metadata = json_decode(file_get_contents($metadataFile), true) ?: [];
-            }
+            $metadata = json_decode(file_get_contents($metadataFile), true) ?: [];
             
             $pending[] = [
-                'pdf_path' => $pdfFile,
                 'metadata' => $metadata,
-                'doi' => $basename
+                'doi' => $basename,
+                'metadata_file' => $metadataFile
             ];
         }
         
@@ -142,7 +136,7 @@ class PaperInterpreterAgent extends BaseAgent
     }
 
     /**
-     * 解读论文
+     * 解读论文（基于元数据）
      */
     protected function interpretPaper(array $paper): array
     {
@@ -154,39 +148,36 @@ class PaperInterpreterAgent extends BaseAgent
         $doi = $metadata['doi'] ?? $paper['doi'];
         $category = $metadata['category'] ?? '';
         
-        // 提取PDF文本（简化版，只读取前几页）
-        $pdfText = $this->extractPdfText($paper['pdf_path']);
-        
         $systemPrompt = <<<PROMPT
-你是一位资深的生物信息学论文解读专家。你的任务是将英文学术论文转化为通俗易懂的中文技术文章。
+你是一位资深的生物信息学论文解读专家。你的任务是将英文学术论文（基于标题和摘要）转化为通俗易懂的中文技术文章。
 
 解读要求：
 1. **标题**：创建一个吸引人的中文标题，突出论文核心创新点
 2. **背景**：解释研究背景，为什么要做这项研究（200-300字）
-3. **核心方法**：用通俗语言解释技术方法，避免过于数学化（400-600字）
-4. **主要结果**：总结关键发现，用通俗语言解释意义（300-500字）
-5. **意义与展望**：这项研究对领域的影响，可能的临床应用或技术影响（200-300字）
+3. **核心方法**：根据标题和摘要推断技术方法，用通俗语言解释（300-400字）
+4. **主要发现**：总结摘要中提到的关键发现，用通俗语言解释意义（200-300字）
+5. **意义与展望**：这项研究对领域的影响，可能的临床应用或技术影响（150-200字）
 6. **精炼总结**：3-5条bullet points，每条一句话，核心要点
 
 写作风格：
 - 面向生物信息学研究人员和研究生
-- 专业但通俗易懂，避免过于学术化的表达
+- 专业但通俗易懂
 - 适当使用类比帮助理解复杂概念
 - 突出论文的创新点和实用价值
+- 基于摘要合理推断，但明确标注哪些是推断
 
 格式要求：
 - 使用Markdown格式
-- 包含适当的代码示例（如果论文涉及新方法）
 - 总结部分必须精炼（3-5条bullet points，每条≤30字）
 
-重要：
-- 不要逐字翻译摘要
-- 要提炼核心创新点
-- 解释"为什么这项研究重要"
+重要提示：
+- 你只看到了标题和摘要，没有看到全文
+- 在解读时合理推断，但不要过度解读
+- 明确标注"根据摘要推断"等说明
 PROMPT;
 
         $prompt = <<<PROMPT
-请解读以下预印本论文：
+请解读以下预印本论文（基于标题和摘要）：
 
 【论文标题】
 $title
@@ -200,23 +191,21 @@ $date
 【DOI】
 $doi
 
-【摘要】
-$abstract
-
 【分类】
 $category
 
-【PDF内容节选】
-$pdfText
+【摘要】
+$abstract
 
-请生成一篇中文解读文章，要求：
+请生成一篇中文解读文章。要求：
 1. 标题突出创新点
 2. 解释研究背景和动机
-3. 用通俗语言解释核心方法
+3. 用通俗语言解释核心方法（基于摘要推断）
 4. 总结主要发现和意义
 5. 精炼总结（3-5条bullet points）
+6. 明确标注哪些是摘要明确提到的，哪些是合理推断
 
-文章长度1500-2000字。
+文章长度1200-1500字。
 PROMPT;
 
         $result = $this->callAI($prompt, $systemPrompt);
@@ -230,6 +219,7 @@ PROMPT;
         $content .= "- **发表日期**: $date\n";
         $content .= "- **DOI**: [$doi](https://doi.org/$doi)\n";
         $content .= "- **分类**: $category\n";
+        $content .= "\n> 💡 本文解读基于论文标题和摘要生成。如需完整内容，请访问原文链接。\n";
         
         // 提取中文标题
         $chineseTitle = '';
@@ -250,35 +240,6 @@ PROMPT;
     }
 
     /**
-     * 从PDF提取文本（简化版）
-     * 注意：这里使用简单的文本提取，如果需要更好的效果，可以集成pdftotext等工具
-     */
-    protected function extractPdfText(string $pdfPath): string
-    {
-        // 由于PHP原生不支持PDF解析，这里返回空字符串
-        // 实际使用时可以：
-        // 1. 安装pdftotext命令行工具
-        // 2. 使用exec调用
-        // 3. 或者使用Smalot\PdfParser库
-        
-        // 尝试使用pdftotext（如果已安装）
-        $output = [];
-        $returnCode = 0;
-        $textFile = tempnam(sys_get_temp_dir(), 'pdf');
-        
-        exec("pdftotext -l 5 -nopgbrk " . escapeshellarg($pdfPath) . " " . escapeshellarg($textFile) . " 2>&1", $output, $returnCode);
-        
-        if ($returnCode === 0 && file_exists($textFile)) {
-            $text = file_get_contents($textFile);
-            unlink($textFile);
-            // 限制长度，避免token超限
-            return mb_substr($text, 0, 3000);
-        }
-        
-        return '';
-    }
-
-    /**
      * 选择标签
      */
     protected function selectTags(array $metadata): array
@@ -287,12 +248,12 @@ PROMPT;
         
         // 根据分类选择标签
         $tagMapping = [
-            'bioinformatics' => [6], // 蛋白/抗体设计
-            'genomics' => [7], // 基因组学
-            'transcriptomics' => [8], // 转录组学
-            'synthetic biology' => [2], // 合成生物学
-            'pharmacology' => [1], // AIDD
-            'biophysics' => [6], // 蛋白设计
+            'bioinformatics' => [6],
+            'genomics' => [7],
+            'transcriptomics' => [8],
+            'synthetic biology' => [2],
+            'pharmacology' => [1],
+            'biophysics' => [6],
         ];
         
         foreach ($tagMapping as $key => $tags) {
