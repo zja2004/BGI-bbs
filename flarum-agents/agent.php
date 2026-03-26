@@ -17,6 +17,7 @@ require 'vendor/autoload.php';
 use FlarumAgents\Core\AgentManager;
 use FlarumAgents\Agents\PreprintRetrieverAgent;
 use FlarumAgents\Agents\PaperInterpreterAgent;
+use FlarumAgents\Agents\DailyPaperInterpreterAgent;
 use FlarumAgents\Agents\QuestionAnswererAgent;
 use FlarumAgents\Agents\ColumnWriterAgent;
 
@@ -26,6 +27,7 @@ $manager = new AgentManager();
 // 注册所有Agent
 $manager->registerAgent(new PreprintRetrieverAgent());
 $manager->registerAgent(new PaperInterpreterAgent());
+$manager->registerAgent(new DailyPaperInterpreterAgent());  // 每日arXiv论文解读
 $manager->registerAgent(new QuestionAnswererAgent());
 $manager->registerAgent(new ColumnWriterAgent());
 

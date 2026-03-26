@@ -8,12 +8,39 @@ use FlarumAgents\Core\FlarumClient;
 /**
  * 论文解读Agent
  * 每2小时读取一篇未解读的预印本论文（基于元数据），生成中文解读文章
+ * 
+ * 改进功能：
+ * 1. 严格的Tag匹配 - 只发布与生物信息学高度相关的论文
+ * 2. 规范的文献信息格式
+ * 3. 质量过滤 - 跳过不相关的论文
  */
 class PaperInterpreterAgent extends BaseAgent
 {
     private FlarumClient $flarum;
     private string $metadataDir;
     private string $interpretedDir;
+    
+    // 生物信息学核心关键词（必须至少匹配一个才发布）
+    private array $coreBioinformaticsKeywords = [
+        'bioinformatic', 'computational biology', 'genomic', 'transcriptom', 'proteom',
+        'metabolom', 'single-cell', 'scrna', 'rna-seq', 'dna-seq', 'chip-seq',
+        'atac-seq', 'methylation', 'epigenetic', 'metagenom', 'microbiome',
+        'phylogen', 'sequence alignment', 'gene expression', 'protein structure',
+        'alphafold', 'crispr', 'synthetic biology', 'systems biology',
+        'single cell', 'spatial transcript', 'scRNA-seq', 'bulk RNA-seq',
+        'whole genome', 'whole exome', 'variant calling', 'snp calling',
+        'differential expression', 'pathway analysis', 'network analysis',
+        'machine learning', 'deep learning', 'neural network', 'language model'
+    ];
+    
+    // 明确不相关的关键词（遇到这些直接跳过）
+    private array $excludeKeywords = [
+        'ethereum', 'bitcoin', 'cryptocurrency', 'blockchain', 'financial trading',
+        'stock market', 'aeroelastic', 'flight dynamic', 'gust load',
+        'concrete', 'battery electrode', 'electromagnetic', 'microwave',
+        'control system', 'feedback linearisation', 'UAV', 'aircraft',
+        'cantilevered plate', 'damage identification', 'frequency response'
+    ];
     
     public function __construct()
     {
@@ -33,7 +60,7 @@ class PaperInterpreterAgent extends BaseAgent
     }
 
     public function getName(): string { return 'paper_interpreter'; }
-    public function getDescription(): string { return '每2小时解读一篇预印本论文并发布'; }
+    public function getDescription(): string { return '每2小时解读一篇预印本论文并发布（严格匹配生物信息学相关）'; }
 
     public function execute(): array
     {
@@ -47,9 +74,26 @@ class PaperInterpreterAgent extends BaseAgent
             return ['success' => true, 'message' => '没有待解读的论文，请先运行preprint_retriever获取论文元数据'];
         }
         
-        // 选择最新的一篇
-        $paper = $pendingPapers[0];
-        $this->log('info', '选择论文', ['doi' => $paper['doi'], 'title' => $paper['metadata']['title'] ?? '']);
+        // 筛选生物信息学相关的论文
+        $relevantPapers = [];
+        foreach ($pendingPapers as $paper) {
+            if ($this->isBioinformaticsRelevant($paper['metadata'])) {
+                $relevantPapers[] = $paper;
+            } else {
+                // 标记为已跳过（不解读）
+                $this->markAsSkipped($paper['doi'], 'not_relevant');
+                $this->log('info', '跳过不相关论文', ['doi' => $paper['doi'], 'title' => $paper['metadata']['title'] ?? '']);
+            }
+        }
+        
+        if (empty($relevantPapers)) {
+            $this->log('info', '没有找到生物信息学相关的论文，跳过本次执行');
+            return ['success' => true, 'message' => '没有生物信息学相关的论文待解读'];
+        }
+        
+        // 选择最新的一篇相关论文
+        $paper = $relevantPapers[0];
+        $this->log('info', '选择论文进行解读', ['doi' => $paper['doi'], 'title' => $paper['metadata']['title'] ?? '']);
         
         try {
             // 生成解读（基于元数据，无需PDF）
@@ -57,7 +101,15 @@ class PaperInterpreterAgent extends BaseAgent
             
             // 发布到论坛
             $tags = $this->selectTags($paper['metadata']);
-            $userId = $this->getConfigValue('interpreter_user_id', 6); // 默认使用毕小文
+            
+            // 如果没有匹配到任何相关tag，跳过发布
+            if (count($tags) <= 2) { // 只有基础标签[9,2]
+                $this->log('warning', '论文没有匹配到相关tag，跳过发布', ['doi' => $paper['doi']]);
+                $this->markAsSkipped($paper['doi'], 'no_matching_tags');
+                return ['success' => true, 'message' => '论文没有匹配到相关tag，跳过发布'];
+            }
+            
+            $userId = $this->getConfigValue('interpreter_user_id', 6); // 默认使用华小文
             
             $result = $this->flarum->createDiscussion(
                 $interpretation['title'],
@@ -74,14 +126,16 @@ class PaperInterpreterAgent extends BaseAgent
                 
                 $this->log('info', '论文解读发布成功', [
                     'discussion_id' => $discussionId,
-                    'doi' => $paper['doi']
+                    'doi' => $paper['doi'],
+                    'tags' => $tags
                 ]);
                 
                 return [
                     'success' => true,
                     'discussion_id' => $discussionId,
                     'doi' => $paper['doi'],
-                    'title' => $interpretation['title']
+                    'title' => $interpretation['title'],
+                    'tags' => $tags
                 ];
             } else {
                 throw new \Exception('发布失败');
@@ -91,6 +145,35 @@ class PaperInterpreterAgent extends BaseAgent
             $this->log('error', '论文解读失败', ['error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    /**
+     * 判断论文是否与生物信息学相关
+     */
+    protected function isBioinformaticsRelevant(array $metadata): bool
+    {
+        $category = strtolower($metadata['category'] ?? '');
+        $abstract = strtolower($metadata['abstract'] ?? '');
+        $title = strtolower($metadata['title'] ?? '');
+        $combinedText = $title . ' ' . $abstract . ' ' . $category;
+        
+        // 首先检查是否包含排除关键词
+        foreach ($this->excludeKeywords as $exclude) {
+            if (strpos($combinedText, $exclude) !== false) {
+                return false;
+            }
+        }
+        
+        // 检查是否包含核心生物信息学关键词
+        $matchCount = 0;
+        foreach ($this->coreBioinformaticsKeywords as $keyword) {
+            if (strpos($combinedText, $keyword) !== false) {
+                $matchCount++;
+            }
+        }
+        
+        // 至少匹配2个关键词才算相关（提高门槛）
+        return $matchCount >= 2;
     }
 
     /**
@@ -109,9 +192,10 @@ class PaperInterpreterAgent extends BaseAgent
         foreach ($metadataFiles as $metadataFile) {
             $basename = basename($metadataFile, '.json');
             $interpretedFile = $this->interpretedDir . $basename . '.json';
+            $skippedFile = $this->interpretedDir . $basename . '_skipped.json';
             
-            // 检查是否已解读
-            if (file_exists($interpretedFile)) {
+            // 检查是否已解读或已跳过
+            if (file_exists($interpretedFile) || file_exists($skippedFile)) {
                 continue;
             }
             
@@ -148,11 +232,14 @@ class PaperInterpreterAgent extends BaseAgent
         $doi = $metadata['doi'] ?? $paper['doi'];
         $category = $metadata['category'] ?? '';
         
+        // 提取年份
+        $year = substr($date, 0, 4);
+        
         $systemPrompt = <<<PROMPT
 你是一位资深的生物信息学论文解读专家。你的任务是将英文学术论文（基于标题和摘要）转化为通俗易懂的中文技术文章。
 
 解读要求：
-1. **标题**：创建一个吸引人的中文标题，突出论文核心创新点
+1. **标题**：创建一个吸引人的中文标题，突出论文核心创新点，格式：【论文解读】+ 核心内容
 2. **背景**：解释研究背景，为什么要做这项研究（200-300字）
 3. **核心方法**：根据标题和摘要推断技术方法，用通俗语言解释（300-400字）
 4. **主要发现**：总结摘要中提到的关键发现，用通俗语言解释意义（200-300字）
@@ -211,8 +298,8 @@ PROMPT;
         $result = $this->callAI($prompt, $systemPrompt);
         $content = $result['choices'][0]['message']['content'] ?? '';
         
-        // 添加原文链接
-        $content .= "\n\n---\n\n**原文信息**\n";
+        // 添加规范的文献信息格式
+        $content .= "\n\n---\n\n**文献信息**\n\n";
         $content .= "- **标题**: $title\n";
         $content .= "- **作者**: $authors\n";
         $content .= "- **预印本平台**: bioRxiv\n";
@@ -240,30 +327,108 @@ PROMPT;
     }
 
     /**
-     * 选择标签
+     * 选择标签 - 严格匹配，只添加明确相关的标签
+     * 标签ID对照：
+     *   一级: 1=AI与智能体, 2=生物信息学
+     *   二级: 9=AI论文解读, 17=RNA-seq, 18=单细胞测序, 19=基因组学, 
+     *         20=蛋白质组学, 21=代谢组学, 22=多组学整合, 23=表观遗传,
+     *         24=宏基因组, 28=机器学习, 29=深度学习, 11=AlphaFold,
+     *         12=大语言模型
      */
     protected function selectTags(array $metadata): array
     {
         $category = strtolower($metadata['category'] ?? '');
+        $abstract = strtolower($metadata['abstract'] ?? '');
+        $title = strtolower($metadata['title'] ?? '');
+        $combinedText = $title . ' ' . $abstract . ' ' . $category;
         
-        // 根据分类选择标签
-        $tagMapping = [
-            'bioinformatics' => [6],
-            'genomics' => [7],
-            'transcriptomics' => [8],
-            'synthetic biology' => [2],
-            'pharmacology' => [1],
-            'biophysics' => [6],
-        ];
+        // 基础标签：AI论文解读 (必须) + 生物信息学(一级分类)
+        $tags = [9, 2];
+        $matchedKeywords = [];
         
-        foreach ($tagMapping as $key => $tags) {
-            if (strpos($category, $key) !== false) {
-                return $tags;
-            }
+        // 严格匹配：每个类别只匹配最明确的关键词
+        
+        // 单细胞测序 - 需要明确的单细胞相关关键词
+        if (preg_match('/\bsingle.cell\b|\bscrna\b|\bscRNA-seq\b|\bspatial transcriptom/', $combinedText)) {
+            $tags[] = 18;
+            $matchedKeywords[] = '单细胞测序';
         }
         
-        // 默认标签
-        return [20]; // 科研经验分享
+        // RNA-seq - 需要明确的RNA-seq关键词
+        if (preg_match('/\brna-seq\b|\btranscriptom\b|\bdifferential expression\b/', $combinedText)) {
+            $tags[] = 17;
+            $matchedKeywords[] = 'RNA-seq';
+        }
+        
+        // 基因组学 - 需要明确的基因组相关关键词
+        if (preg_match('/\bgenom\b|\bwhole genome\b|\bwhole exome\b|\bwgs\b|\bwes\b/', $combinedText)) {
+            $tags[] = 19;
+            $matchedKeywords[] = '基因组学';
+        }
+        
+        // 蛋白质组学 - 需要明确的蛋白质相关关键词
+        if (preg_match('/\bproteom\b|\bprotein structure\b|\bprotein sequence\b|\bamino acid\b/', $combinedText)) {
+            $tags[] = 20;
+            $matchedKeywords[] = '蛋白质组学';
+        }
+        
+        // 代谢组学 - 需要明确的代谢相关关键词
+        if (preg_match('/\bmetabolom\b|\bmetabolite\b/', $combinedText)) {
+            $tags[] = 21;
+            $matchedKeywords[] = '代谢组学';
+        }
+        
+        // 多组学整合
+        if (preg_match('/\bmulti.omics?\b|\bintegrative\b|\btranscriptomic.*proteomic|\bproteomic.*transcriptomic/', $combinedText)) {
+            $tags[] = 22;
+            $matchedKeywords[] = '多组学整合';
+        }
+        
+        // 表观遗传 - 需要明确的表观遗传相关关键词
+        if (preg_match('/\bepigenetic\b|\bchip-seq\b|\batac-seq\b|\bmethylation\b|\bhistone\b/', $combinedText)) {
+            $tags[] = 23;
+            $matchedKeywords[] = '表观遗传';
+        }
+        
+        // 宏基因组
+        if (preg_match('/\bmetagenom\b|\bmicrobiome\b|\b16s\b|\bshotgun sequencing/', $combinedText)) {
+            $tags[] = 24;
+            $matchedKeywords[] = '宏基因组';
+        }
+        
+        // 深度学习 - 需要明确的深度学习相关关键词
+        if (preg_match('/\bdeep learning\b|\bneural network\b|\bcnn\b|\brnn\b|\blstm\b|\btransformer\b/', $combinedText)) {
+            $tags[] = 29;
+            $tags[] = 1;  // AI与智能体(一级)
+            $matchedKeywords[] = '深度学习';
+        }
+        // 机器学习（如果不是深度学习）
+        elseif (preg_match('/\bmachine learning\b|\brandom forest\b|\bsvm\b|\bgradient boosting\b/', $combinedText)) {
+            $tags[] = 28;
+            $tags[] = 1;
+            $matchedKeywords[] = '机器学习';
+        }
+        
+        // AlphaFold/蛋白质结构预测
+        if (preg_match('/\balphafold\b|\bprotein folding\b/', $combinedText)) {
+            $tags[] = 11;
+            $tags[] = 1;
+            $matchedKeywords[] = 'AlphaFold';
+        }
+        
+        // 大语言模型
+        if (preg_match('/\blarge language model\b|\bllm\b|\bgpt\b/', $combinedText)) {
+            $tags[] = 12;
+            $tags[] = 1;
+            $matchedKeywords[] = '大语言模型';
+        }
+        
+        // 记录匹配的标签用于调试
+        if (!empty($matchedKeywords)) {
+            $this->log('info', '论文标签匹配', ['matched' => $matchedKeywords]);
+        }
+        
+        return array_unique($tags);
     }
 
     /**
@@ -282,6 +447,28 @@ PROMPT;
             'doi' => $doi,
             'discussion_id' => $discussionId,
             'interpreted_at' => date('Y-m-d H:i:s'),
+            'interpreter' => 'PaperInterpreterAgent'
+        ];
+        
+        file_put_contents($filepath, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * 标记为已跳过
+     */
+    protected function markAsSkipped(string $doi, string $reason): void
+    {
+        if (!is_dir($this->interpretedDir)) {
+            mkdir($this->interpretedDir, 0755, true);
+        }
+        
+        $filename = $this->sanitizeFilename($doi) . '_skipped.json';
+        $filepath = $this->interpretedDir . $filename;
+        
+        $data = [
+            'doi' => $doi,
+            'skipped_at' => date('Y-m-d H:i:s'),
+            'reason' => $reason,
             'interpreter' => 'PaperInterpreterAgent'
         ];
         

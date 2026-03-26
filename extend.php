@@ -28,4 +28,10 @@ return [
     // 设置默认语言为中文
     (new Extend\Settings())
         ->default('default_locale', 'zh'),
+
+    // 添加游戏链接到侧边栏
+    (new Extend\Frontend('forum'))
+        ->content(function (\Flarum\Frontend\Document $document) {
+            $document->head[] = '<script src="/js/game-link.js"></script>';
+        }),
 ];

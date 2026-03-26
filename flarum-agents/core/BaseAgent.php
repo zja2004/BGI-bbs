@@ -64,14 +64,38 @@ abstract class BaseAgent implements AgentInterface
 
     protected function callAI(string $prompt, string $systemPrompt = '', array $tools = []): array
     {
+        // 获取主模型配置（minimax2.5）
         $apiKey = $this->getConfigValue('api_key');
         $model = $this->getConfigValue('model', 'Qwen3-235B-A22B');
         $baseUrl = $this->getConfigValue('base_url', 'http://172.16.224.137:1024/v1');
+        
+        // 获取备用模型配置（Qwen）
+        $backupModel = $this->getConfigValue('backup_model', 'Qwen3-235B-A22B');
+        $backupBaseUrl = $this->getConfigValue('backup_base_url', 'http://172.16.224.137:1024/v1');
 
         if (empty($apiKey)) {
             throw new \Exception('API Key 未配置');
         }
 
+        // 尝试使用主模型
+        try {
+            return $this->doApiCall($prompt, $systemPrompt, $apiKey, $model, $baseUrl);
+        } catch (\Exception $e) {
+            $this->log('warning', '主模型调用失败，切换到备用模型', [
+                'primary_model' => $model,
+                'error' => $e->getMessage()
+            ]);
+            
+            // 主模型失败，尝试备用模型
+            return $this->doApiCall($prompt, $systemPrompt, $apiKey, $backupModel, $backupBaseUrl);
+        }
+    }
+    
+    /**
+     * 执行实际的API调用
+     */
+    protected function doApiCall(string $prompt, string $systemPrompt, string $apiKey, string $model, string $baseUrl): array
+    {
         $messages = [];
         if (!empty($systemPrompt)) {
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];

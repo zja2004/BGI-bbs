@@ -19,7 +19,7 @@
            │                             │
            ▼                             ▼
     preprints/pdf/                 Flarum论坛
-    preprints/metadata/            (毕小文发布)
+    preprints/metadata/            (华小文发布)
     preprints/interpreted/
 ```
 
@@ -117,7 +117,7 @@ flarum-agents/
 'paper_interpreter' => [
     'enabled' => true,
     'interval' => 120,   // 2小时
-    'interpreter_user_id' => 6,  // 毕小文
+    'interpreter_user_id' => 6,  // 华小文
 ],
 ```
 
