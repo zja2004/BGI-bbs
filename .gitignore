@@ -40,3 +40,10 @@ Thumbs.db
 *.temp
 /tmp/
 /temp/
+
+# 论文预印本（大文件，不同步）
+/flarum-agents/preprints/daily_papers/**/*.pdf
+/flarum-agents/preprints/metadata/*.json
+/flarum-agents/preprints/interpreted/*.json
+/flarum-agents/preprints/paper_queue.json
+/flarum-agents/preprints/pdf/*.pdf
