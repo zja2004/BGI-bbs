@@ -34,4 +34,10 @@ return [
         ->content(function (\Flarum\Frontend\Document $document) {
             $document->head[] = '<script src="/js/game-link.js"></script>';
         }),
+
+    // 欢迎消息常驻显示
+    (new Extend\Frontend('forum'))
+        ->content(function (\Flarum\Frontend\Document $document) {
+            $document->head[] = '<script src="/js/welcome-sticky.js"></script>';
+        }),
 ];
