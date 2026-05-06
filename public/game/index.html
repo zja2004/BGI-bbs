@@ -11,8 +11,163 @@
 <script src="draw.js"></script>
 <script src="macrocell.js"></script>
 <script src="main.js"></script>
+<style>
+/* 游戏说明面板样式 */
+#game_instructions_panel {
+    position: fixed;
+    left: 0;
+    top: 50px;
+    width: 320px;
+    max-height: calc(100vh - 100px);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #4a9eff;
+    border-left: none;
+    border-radius: 0 15px 15px 0;
+    padding: 15px 20px;
+    color: #fff;
+    font-size: 14px;
+    z-index: 100;
+    overflow-y: auto;
+    box-shadow: 5px 5px 20px rgba(74, 158, 255, 0.3);
+    transition: transform 0.3s ease;
+}
+#game_instructions_panel.collapsed {
+    transform: translateX(-280px);
+}
+#game_instructions_panel h3 {
+    color: #4a9eff;
+    margin: 0 0 10px 0;
+    text-align: center;
+    font-size: 16px;
+    border-bottom: 1px solid #4a9eff;
+    padding-bottom: 8px;
+}
+#game_instructions_panel h4 {
+    color: #ffd700;
+    margin: 12px 0 6px 0;
+    font-size: 14px;
+}
+#game_instructions_panel p {
+    margin: 5px 0;
+    line-height: 1.6;
+}
+#game_instructions_panel table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+}
+#game_instructions_panel td {
+    padding: 6px 8px;
+    border: 1px solid #4a9eff;
+}
+#game_instructions_panel tr:nth-child(odd) td:first-child {
+    background-color: #4a9eff;
+    color: #fff;
+}
+#game_instructions_panel tr:nth-child(even) td {
+    background-color: rgba(74, 158, 255, 0.1);
+}
+#toggle_instructions {
+    position: absolute;
+    right: -35px;
+    top: 10px;
+    background: #4a9eff;
+    color: #fff;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+}
+#toggle_instructions:hover {
+    background: #6bb3ff;
+}
+.rule-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+.alive-icon {
+    background-color: #4a9eff;
+    border-radius: 2px;
+}
+.dead-icon {
+    background-color: #333;
+    border: 1px solid #666;
+    border-radius: 2px;
+}
+.key-point {
+    color: #ff6b6b;
+    font-weight: bold;
+}
+</style>
 </head>
 <body>
+<!-- 游戏说明面板 -->
+<div id="game_instructions_panel">
+    <button id="toggle_instructions">◀ 收起</button>
+    <h3>🎮 康威生命游戏说明</h3>
+    
+    <h4>一、基本玩法</h4>
+    <p>
+        在网格上，每个格子有两种状态：<br>
+        <span class="rule-icon alive-icon"></span> <b style="color:#4a9eff">活</b>（有生命）
+        <span class="rule-icon dead-icon"></span> <b style="color:#888">死</b>（无生命）
+    </p>
+    <p>画出初始图案 → 自动演化 → 观察变化</p>
+    <p class="key-point">👉 你只负责"起点"，后面全自动！</p>
+    
+    <h4>⚙️ 二、核心规则</h4>
+    <table>
+        <tr><td><b>1️⃣ 活细胞</b></td></tr>
+        <tr><td>
+            邻居 <b style="color:#ff6b6b">&lt;2</b> → 死亡（孤单）<br>
+            邻居 <b style="color:#4a9eff">2或3</b> → 存活<br>
+            邻居 <b style="color:#ff6b6b">&gt;3</b> → 死亡（拥挤）
+        </td></tr>
+        <tr><td><b>2️⃣ 死细胞</b></td></tr>
+        <tr><td>
+            邻居 <b style="color:#ffd700">刚好3个</b> → 复活（诞生）
+        </td></tr>
+    </table>
+    
+    <h4>🖱️ 三、操作方式</h4>
+    <p><b>右键</b>：画细胞 / 删除细胞</p>
+    <p><b>左键拖动</b>：移动画面</p>
+    <p><b>滚轮</b>：缩放</p>
+    <p><b>空格</b>：前进一代</p>
+    <p><b>Enter</b>：运行/暂停</p>
+    
+    <p style="margin-top:15px; font-size:12px; color:#888;">
+        点击 <b style="color:#4a9eff">Patterns</b> 加载示例图案
+    </p>
+</div>
+
+<script>
+// 折叠/展开说明面板
+(function() {
+    var panel = document.getElementById('game_instructions_panel');
+    var toggleBtn = document.getElementById('toggle_instructions');
+    var isCollapsed = false;
+    
+    toggleBtn.addEventListener('click', function() {
+        isCollapsed = !isCollapsed;
+        if (isCollapsed) {
+            panel.classList.add('collapsed');
+            toggleBtn.textContent = '▶ 展开';
+        } else {
+            panel.classList.remove('collapsed');
+            toggleBtn.textContent = '◀ 收起';
+        }
+    });
+})();
+</script>
+
 <div id="toolbar" style="display: none;">
 
     <div class="button" id="about_button">About</div>
